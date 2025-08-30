@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Psychology True/False Quiz</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #050010;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .app { width: min(900px, 100%); }
+    .card {
+      background: #0c0020;
+      border-radius: 20px;
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+      overflow: hidden;
+      padding: 20px;
+    }
+    .brand {
+      font-size: 22px;
+      font-weight: 700;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+    .progress {
+      height: 8px;
+      background: #1a0035;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 10px 0 20px;
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg,#0ff,#f0f);
+      box-shadow: 0 0 10px #0ff;
+      transition: width 0.3s ease;
+    }
+    .statement {
+      font-size: 26px;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 20px;
+      text-shadow: 0 0 8px #f0f;
+      overflow-wrap: break-word;
+    }
+    .answer-row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .circle {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 0 20px rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+    .ok { border: 2px solid #0f0; color: #0f0; text-shadow: 0 0 15px #0f0; }
+    .no { border: 2px solid #f06; color: #f06; text-shadow: 0 0 15px #f06; }
+    .circle:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(255,255,255,0.4);
+    }
+    .feedback { text-align: center; font-size: 20px; font-weight: 600; min-height: 28px; }
+    .right { color: #0f0; text-shadow: 0 0 10px #0f0; }
+    .wrong { color: #f06; text-shadow: 0 0 10px #f06; }
+    .nav { display: flex; justify-content: space-between; margin: 20px 0; flex-wrap: wrap; gap: 10px; }
+    .nav button, #btnClear {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      background: #120033;
+      color: #fff;
+      box-shadow: 0 0 10px #0ff;
+      flex: 1 1 auto;
+    }
+    .nav button:hover, #btnClear:hover { background: #250060; }
+    .sheet {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    .pill {
+      padding: 4px 6px;
+      border: 1px solid #555;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #aaa;
+      min-width: 28px;
+      text-align: center;
+    }
+    .pill.answered {
+      color: #0ff;
+      border-color: #0ff;
+      text-shadow: 0 0 8px #0ff;
+    }
+    .footer {
+      font-size: 12px;
+      padding: 12px;
+      text-align: center;
+      color: #888;
+    }
+
+    /* -------- Responsive adjustments -------- */
+    @media (max-width: 600px) {
+      .statement { font-size: 20px; }
+      .circle { width: 70px; height: 70px; font-size: 28px; }
+      .answer-row { gap: 20px; }
+      .brand { font-size: 18px; }
+    }
+    @media (max-width: 400px) {
+      .circle { width: 60px; height: 60px; font-size: 24px; }
+      .statement { font-size: 18px; }
+      .nav button, #btnClear { font-size: 13px; padding: 6px 10px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <div class="brand">Psychology True/False (Class 12)</div>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="statement" id="statement">Loading…</div>
+      <div class="answer-row">
+        <div class="circle ok" id="btnTrue">✓</div>
+        <div class="circle no" id="btnFalse">✕</div>
+      </div>
+      <div class="feedback" id="feedback"></div>
+      <div class="nav">
+        <button id="prev">◀ Prev</button>
+        <button id="btnClear">Clear All</button>
+        <button id="next">Next ▶</button>
+      </div>
+      <div class="sheet" id="sheet"></div>
+      <div class="footer">© Surbhi Sharma @surbhipsychtutor</div>
+    </div>
+  </div>
+
+  <script>
+  const DEFAULT_QUESTIONS = [];
+  const STORE_KEY="neon_tf_quiz_v5";
+  let state={questions:DEFAULT_QUESTIONS,answers:[],index:0};
+
+  try{
+    const raw=sessionStorage.getItem(STORE_KEY);
+    if(raw){state=JSON.parse(raw);}
+  }catch(e){}
+
+  const $=q=>document.querySelector(q);
+  const elStatement=$('#statement'),
+        elFeedback=$('#feedback'),
+        elBar=$('#bar'),
+        elSheet=$('#sheet');
+
+  function save(){sessionStorage.setItem(STORE_KEY,JSON.stringify(state));}
+  function render(){
+    elStatement.textContent=state.questions[state.index].text;
+    const answered=state.answers.filter(v=>typeof v==='boolean').length;
+    elBar.style.width=(answered/state.questions.length*100)+'%';
+    const a=state.answers[state.index];
+    if(typeof a==='boolean'){
+      const correct=a===state.questions[state.index].answer;
+      elFeedback.textContent=correct?'Correct ✔':'Incorrect ✖';
+      elFeedback.className='feedback '+(correct?'right':'wrong');
+    } else {
+      elFeedback.textContent='';
+      elFeedback.className='feedback';
+    }
+    elSheet.innerHTML='';
+    state.questions.forEach((q,i)=>{
+      const p=document.createElement('div');
+      p.className='pill'+(typeof state.answers[i]==='boolean'?' answered':'' );
+      p.textContent=i+1;
+      p.onclick=()=>{state.index=i;save();render();};
+      elSheet.appendChild(p);
+    });
+  }
+  function answer(v){state.answers[state.index]=v;save();render();}
+  $('#btnTrue').onclick=()=>answer(true);
+  $('#btnFalse').onclick=()=>answer(false);
+  $('#next').onclick=()=>{if(state.index<state.questions.length-1){state.index++;save();render();}};
+  $('#prev').onclick=()=>{if(state.index>0){state.index--;save();render();}};
+  $('#btnClear').onclick=()=>{if(confirm('Clear all answers?')){state.answers=[];state.index=0;sessionStorage.removeItem(STORE_KEY);render();}};
+  </script>
+
+<script>
+  // All psychology questions
+  DEFAULT_QUESTIONS.push(
+ // -------- CHAPTER 1: Variations in Psychological Attributes --------
+  {text:"Intelligence tests were first developed by Alfred Binet.", answer:true},
+  {text:"EQ stands for Emotional Quantity.", answer:false},
+  {text:"Psychometrics deals with the measurement of psychological attributes.", answer:true},
+  {text:"Aptitude refers to an individual’s potential for learning new skills.", answer:true},
+  {text:"IQ is calculated as Mental Age divided by Chronological Age multiplied by 100.", answer:true},
+  {text:"Creativity only means artistic ability.", answer:false},
+  {text:"Normal distribution of intelligence is represented by a bell-shaped curve.", answer:true},
+  {text:"High IQ guarantees success in life.", answer:false},
+  {text:"Individual differences are caused by both heredity and environment.", answer:true},
+  {text:"Emotional intelligence involves managing and regulating emotions.", answer:true},
+  {text:"Aptitude tests are used for assessing current performance.", answer:false},
+  {text:"Interest tests measure preferences and choices.", answer:true},
+  {text:"Reliability refers to the consistency of test results.", answer:true},
+  {text:"Validity refers to whether a test actually measures what it claims to.", answer:true},
+  {text:"Intelligence can only be measured through verbal tasks.", answer:false},
+  {text:"Group tests of intelligence can be administered to many people at once.", answer:true},
+  {text:"Individual tests of intelligence require face-to-face interaction.", answer:true},
+  {text:"Culture-fair tests aim to minimize language and cultural biases.", answer:true},
+  {text:"Creativity involves originality, fluency and flexibility.", answer:true},
+  {text:"Performance tests do not require verbal instructions.", answer:true},
+  {text:"Stanford-Binet is an adaptation of Binet’s intelligence test in the USA.", answer:true},
+  {text:"Achievement tests measure current levels of performance.", answer:true},
+  {text:"Test-retest method is used to check reliability.", answer:true},
+  {text:"Emotional intelligence was popularized by Daniel Goleman.", answer:true},
+  {text:"IQ below 70 indicates intellectual disability.", answer:true},
+  {text:"Every individual has the same level of psychological attributes.", answer:false},
+// -------- CHAPTER 2: Self and Personality --------
+  {text:"Self-esteem means one’s overall evaluation of oneself.", answer:true},
+  {text:"Carl Rogers emphasized the concept of self-actualization.", answer:false},
+  {text:"Maslow proposed a hierarchy of needs with self-actualization at the top.", answer:true},
+  {text:"The real self and ideal self are always identical.", answer:false},
+  {text:"Freud’s theory of personality includes id, ego and superego.", answer:true},
+  {text:"The id operates on the reality principle.", answer:false},
+  {text:"Projection involves attributing one’s own unacceptable feelings to others.", answer:true},
+  {text:"Repression means consciously remembering unpleasant events.", answer:false},
+  {text:"Allport described cardinal, central and secondary traits.", answer:true},
+  {text:"Cattell proposed 16 personality factors.", answer:true},
+  {text:"Humanistic theories focus on personal growth and self-actualization.", answer:true},
+  {text:"Self-efficacy is one’s belief in one’s ability to perform a task.", answer:true},
+  {text:"Albert Bandura emphasized reciprocal determinism.", answer:true},
+  {text:"The Rorschach test uses inkblot cards.", answer:true},
+  {text:"Thematic Apperception Test (TAT) asks individuals to tell stories about pictures.", answer:true},
+  {text:"Self-regulation involves controlling one’s behavior and emotions.", answer:true},
+  {text:"Cultural factors have no role in personality development.", answer:false},
+  {text:"Self-esteem develops through interactions with others.", answer:true},
+  {text:"The superego represents moral standards and ideals.", answer:true},
+  {text:"Type-A personality is associated with competitiveness and time urgency.", answer:true},
+  {text:"Personality remains completely unchanged throughout life.", answer:false},
+  {text:"The ideal self is what a person aspires to be.", answer:true},
+  {text:"Social learning theory emphasizes observational learning.", answer:true},
+  {text:"Freud’s psychosexual stages end with the latency period.", answer:false},
+  {text:"Defense mechanisms can help reduce anxiety.", answer:true},
+ // -------- CHAPTER 3: Meeting Life Challenges --------
+  {text:"Stress disturbs body's equilibrium.", answer:true},
+  {text:"Eustress refers to harmful negative stress.", answer:false},
+  {text:"Hans Selye proposed the General Adaptation Syndrome model.", answer:true},
+  {text:"The first stage of GAS is resistance.", answer:false},
+  {text:"Alarm, resistance and exhaustion are the stages of GAS.", answer:true},
+  {text:"Stress can affect both psychological and physiological health.", answer:true},
+  {text:"Daily hassles do not contribute to stress.", answer:false},
+  {text:"Conflict is a source of stress.", answer:true},
+  {text:"Problem-focused coping aims to tackle the problem causing stress.", answer:true},
+  {text:"Emotion-focused coping involves regulating emotions associated with stress.", answer:true},
+  {text:"Resilience is the ability to adapt well in the face of adversity.", answer:true},
+  {text:"Social support reduces the negative effects of stress.", answer:true},
+  {text:"Biofeedback is a technique used to control physiological functions.", answer:true},
+  {text:"Yoga and meditation can help reduce stress.", answer:true},
+  {text:"Hardiness includes commitment, control and challenge.", answer:true},
+  {text:"Perceived control is unrelated to stress management.", answer:false},
+  {text:"Avoidance coping always leads to better stress outcomes.", answer:false},
+  {text:"Stress only results from major life events, not minor hassles.", answer:false},
+  {text:"Lazarus emphasized cognitive appraisal in stress response.", answer:true},
+  {text:"Primary appraisal refers to evaluating the significance of an event.", answer:true},
+  {text:"Secondary appraisal refers to evaluating coping resources.", answer:true},
+  {text:"Exhaustion stage of GAS may lead to illness.", answer:true},
+  {text:"Coping strategies can be learned and improved.", answer:true},
+  {text:"Type A behavior pattern is more prone to stress-related illness.", answer:true},
+  {text:"Relaxation techniques include progressive muscular relaxation.", answer:true},
+  {text:"Mindfulness means being aware of the present moment.", answer:true},
+  {text:"Perceived lack of control increases stress levels.", answer:true},
+  {text:"Chronic stress can weaken the immune system.", answer:true},
+  {text:"Time management can reduce stress.", answer:true},
+  {text:"Relaxation is only psychological, not physiological.", answer:false},
+  {text:"Stress can sometimes enhance performance.", answer:true},
+// -------- CHAPTER 4: Psychological Disorders --------
+  {text:"Abnormal behavior always means socially unacceptable behavior.", answer:false},
+  {text:"ICD and DSM are systems for classifying mental disorders.", answer:true},
+  {text:"Generalized Anxiety Disorder is characterized by excessive worry not tied to any particular cue.", answer:true},
+  {text:"Phobias are irrational fears of specific objects or situations.", answer:true},
+  {text:"Obsessive-compulsive disorder includes repetitive thoughts and behaviors.", answer:true},
+  {text:"Depression includes persistent sadness and loss of interest.", answer:true},
+  {text:"Bipolar disorder involves both depressive and manic episodes.", answer:true},
+  {text:"Schizophrenia is characterized by disorganized thinking, delusion and hallucinations.", answer:true},
+  {text:"Delusions are false beliefs not based in reality.", answer:true},
+  {text:"Hallucinations are false perceptions without external stimulus.", answer:true},
+  {text:"ADHD is characterized by hyperactivity and inattention.", answer:true},
+  {text:"Autism spectrum disorder involves deficits in communication and social interaction.", answer:true},
+  {text:"Somatic symptom disorder involves excessive concern about physical symptoms.", answer:true},
+  {text:"Dissociative amnesia involves inability to recall important personal information.", answer:true},
+  {text:"Dissociative identity disorder means having multiple personalities.", answer:true},
+  {text:"Conversion disorder involves neurological symptoms without medical cause.", answer:true},
+  {text:"Anorexia nervosa and bulimia nervosa are eating disorder.", answer:true},
+  {text:"Stress has no role in the development of psychological disorders.", answer:false},
+  {text:"Genetic factors contribute to mental disorders.", answer:true},
+  {text:"Schizophrenia may involve positive, negative and psychomotor symptoms.", answer:true},
+  {text:"Panic disorder involves sudden attacks of intense fear.", answer:true},
+  {text:"Obsessions are repetitive behaviors, compulsions are repetitive thoughts.", answer:false},
+  {text:"Depression can lead to suicidal thoughts.", answer:true},
+  {text:"Phobias are always based on real danger.", answer:false},
+  {text:"Delusions of persecution involve belief of being harmed.", answer:true},
+  {text:"Hallucinations can occur in any sensory modality.", answer:true},
+  {text:"Stress-vulnerability model can explains schizophrenia.", answer:true},
+  {text:"ADHD occurs only in adults.", answer:false},
+  {text:"Bulimia nervosa involves binge eating followed by purging.", answer:true},
+  {text:"Psychological disorders always have a single cause.", answer:false},
+  {text:"Psychological disorders can be treated and managed.", answer:true},
+// -------- CHAPTER 5: Therapeutic Approaches --------
+  {text:"All therapies focus only on biological factors.", answer:false},
+  {text:"Freud developed psychoanalysis.", answer:true},
+  {text:"Free association is a technique in psychoanalysis.", answer:true},
+  {text:"Dream analysis is used to understand unconscious conflicts.", answer:true},
+  {text:"Transference occurs when client project feelings onto the therapist.", answer:true},
+  {text:"Behavior therapy focuses on unconscious conflicts.", answer:false},
+  {text:"Systematic desensitization can used to treat phobias.", answer:true},
+  {text:"Token economy is a technique in behavior therapy.", answer:true},
+  {text:"Cognitive therapy was developed by Aaron Beck.", answer:true},
+  {text:"Cognitive therapy focuses on irrational beliefs.", answer:true},
+  {text:"Albert Ellis developed Rational Emotive Therapy.", answer:true},
+  {text:"Humanistic therapy emphasizes personal growth and self-actualization.", answer:true},
+  {text:"Client-centered therapy was developed by Carl Rogers.", answer:true},
+  {text:"Unconditional positive regard is central to client-centered therapy.", answer:true},
+  {text:"Gestalt therapy focuses on the here and now.", answer:true},
+  {text:"Biomedical therapies include drug treatment and ECT.", answer:true},
+  {text:"Antidepressants are used to treat schizophrenia.", answer:false},
+  {text:"Antipsychotics are used for treating hallucinations and delusions.", answer:true},
+  {text:"ECT stands for Electro Convulsive Therapy.", answer:true},
+  {text:"Rehabilitation helps clients reintegrate into society.", answer:true},
+  {text:"Therapeutic alliance refers to professional (trusting) relationship between client and therapist.", answer:true},
+  {text:"Cognitive-behavioral therapy combines cognitive and behavioral techniques.", answer:true},
+  {text:"Aversion therapy pairs undesirable behavior with unpleasant stimulus.", answer:true},
+  {text:"Self-help groups provide mutual support to members.", answer:true},
+  {text:"Therapy is only effective if it completely eliminates symptoms.", answer:false},
+  {text:"Ethical issues are important in psychotherapy.", answer:true},
+  {text:"Therapists must maintain confidentiality.", answer:true},
+  {text:"Counseling is useful even for everyday life problems.", answer:true},
+  {text:"Biomedical therapies alone are always sufficient.", answer:false},
+  {text:"Humanistic therapy views humans as inherently good.", answer:true},
+  {text:"Cognitive restructuring is a part of cognitive therapy.", answer:true},
+  {text:"Therapeutic effectiveness can be measured by symptom reduction.", answer:true},
+  {text:"All therapies ignore the role of client motivation.", answer:false},
+// -------- CHAPTER 6: Attitude --------
+  {text:"Attitudes consist of cognitive, affective, and behavioral components.", answer:true},
+  {text:"Cognitive component of attitude refers to feelings and emotions.", answer:false},
+  {text:"Affective component of attitude refers to one’s feelings towards an object.", answer:true},
+  {text:"Behavioral component reflects how we act towards an object of attitude.", answer:true},
+  {text:"Attitudes are always innate and cannot be learned.", answer:false},
+  {text:"Attitudes can be formed through classical conditioning.", answer:true},
+  {text:"Operant conditioning can also play a role in attitude formation.", answer:true},
+  {text:"Observational learning influences attitude development.", answer:true},
+  {text:"Attitudes can never be changed once formed.", answer:false},
+  {text:"Source credibility is an important factor in persuasion.", answer:true},
+  {text:"Cognitive dissonance arises when behavior contradicts attitude.", answer:true},
+  {text:"Festinger proposed the theory of cognitive dissonance.", answer:true},
+  {text:"Attitudes and behavior always match perfectly.", answer:false},
+  {text:"Attitude strength and accessibility influence attitude-behavior consistency.", answer:true},
+  {text:"Prejudice is a negative attitude towards a group.", answer:true},
+  {text:"Stereotypes are cognitive generalizations about groups.", answer:true},
+  {text:"Discrimination is the behavioral expression of prejudice.", answer:true},
+  {text:"Prejudice is always based on objective facts.", answer:false},
+  {text:"Contact hypothesis suggests that prejudice can be reduced through intergroup contact.", answer:true},
+  {text:"Balanced theory was given by Fritz Heider.", answer:true},
+  {text:"Media has no impact on shaping attitudes.", answer:false},
+  {text:"Health-related behaviors are influenced by attitudes.", answer:true},
+  {text:"Fear appeals always succeed in changing attitudes.", answer:false},
+  {text:"Attitudes may be explicit or implicit.", answer:true},
+  {text:"Attitudes are evaluative in nature.", answer:true},
+  {text:"Direct personal experience leads to stronger attitudes.", answer:true},
+  {text:"Attitudes cannot be measured using scales or questionnaires.", answer:false},
+  {text:"Attitudes guide perception and behavior.", answer:true},
+  {text:"Compliance, identification and internalization are processes of attitude change.", answer:true},
+  {text:"Changing attitudes is easier when people are highly motivated and attentive.", answer:true},
+  {text:"The elaboration likelihood model explains two routes of persuasion.", answer:true},
+  {text:"Social norms have no influence on attitude expression.", answer:false},
+// -------- CHAPTER 7: Social Influence and Group Processes --------
+  {text:"Social influence refers to changes in behavior due to real or imagined pressure from others.", answer:true},
+  {text:"Social loafing is when individuals put more effort in groups than alone.", answer:false},
+  {text:"Social facilitation is improved performance in the presence of others.", answer:true},
+  {text:"Norms are shared expectations within a group.", answer:true},
+  {text:"Roles are patterns of behavior expected of group members.", answer:true},
+  {text:"Status refers to a person’s position within a group hierarchy.", answer:true},
+  {text:"A crowd is a structured group with clear roles and norms.", answer:false},
+  {text:"In-groups are groups we identify with.", answer:true},
+  {text:"Out-groups are groups we do not identify with.", answer:true},
+  {text:"In-group bias means favoring one’s own group.", answer:true},
+  {text:"Intergroup conflict can arise from competition for resources.", answer:true},
+  {text:"Realistic conflict theory explains prejudice from competition.", answer:true},
+  {text:"Social identity theory emphasizes self-concept from group membership.", answer:true},
+  {text:"Cooperation can reduce intergroup conflict.", answer:true},
+  {text:"Superordinate goals can bring conflicting groups together.", answer:true},
+  );
+
+  // Initialize
+  if(state.questions.length===0){
+    state.questions=DEFAULT_QUESTIONS;
+    state.answers=[];
+    state.index=0;
+    save();
+  }
+  render();
+  </script>
+</body>
+</html>
